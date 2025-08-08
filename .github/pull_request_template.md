@@ -9,12 +9,11 @@
 ## 🚀 Change Type
 - [ ] Bug Fix | [ ] Feature | [ ] Configuration | [ ] Refactor | [ ] Documentation
 
-## 🧪 Apex Testing (if applicable)
+## 🧪 Apex Checks (if applicable)
 - [ ] **Code Coverage >90%** | [ ] **All Tests Pass** | [ ] **Bulk Data Tested**
 
-**Coverage:** ___% | **Classes:** [List modified classes]
+**Coverage:** ___% | **Classes:** 
 
-## 🚢 Deployment
 **📋 Pre/Post Steps:** [Link to Confluence Page](https://lumen.atlassian.net/wiki/spaces/EDPEST)
 
 ### Quick Checklist
