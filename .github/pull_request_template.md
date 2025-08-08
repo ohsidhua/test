@@ -15,7 +15,7 @@
 **Coverage:** ___% | **Classes:** [List modified classes]
 
 ## 🚢 Deployment
-**📋 Pre/Post Steps:** [Link to Confluence Page](https://lumen.atlassian.net/wiki/spaces/EDPEST)/)
+**📋 Pre/Post Steps:** [Link to Confluence Page](https://lumen.atlassian.net/wiki/spaces/EDPEST)
 
 ### Quick Checklist
 - [ ] **Pre-deployment steps documented/completed**
