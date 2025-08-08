@@ -43,15 +43,15 @@ jobs:
               
               // Validate JIRA ID
               if (!/^[A-Z]+-\d+$/.test(jiraId)) {
-                return { valid: false, error: `JIRA ID "${jiraId}" must follow format: PROJECT-123` };
+                return { valid: false, error: `JIRA ID "${jiraId}" must follow format: EDPEST-1234` };
               }
               
               // Validate Sprint
               if (!/^Sprint \d+$/.test(sprint)) {
-                return { valid: false, error: `Sprint "${sprint}" must follow format: Sprint 45` };
+                return { valid: false, error: `Sprint "${sprint}" must follow format: Sprint 1.1` };
               }
               
-              // IMPROVED: Validate Release Month with actual month names
+              // Validate Release Month with actual month names
               const validMonths = [
                 'January', 'February', 'March', 'April', 'May', 'June',
                 'July', 'August', 'September', 'October', 'November', 'December',
@@ -105,27 +105,19 @@ jobs:
               
               | Component | Format | Example | Rules |
               |-----------|--------|---------|-------|
-              | **JIRA Issue ID** | \`PROJECT-###\` | \`PROJ-123\` | Uppercase letters, dash, numbers |
-              | **Sprint Number** | \`Sprint ##\` | \`Sprint 45\` | Word "Sprint" + space + number |
-              | **Release Month** | \`Month YYYY\` | \`March 2024\` | Full month name + 4-digit year |
-              | **Team Name** | \`TeamName\` | \`DataTeam\` | Alphanumeric only, no spaces |
+              | **JIRA Issue ID** | \`EDPEST-###\` | \`EDPEST-1234\` | Uppercase letters, dash, numbers |
+              | **Sprint Number** | \`Sprint ##\` | \`Sprint 1.1\` | Word "Sprint" + space + Version |
+              | **Release Month** | \`Month YYYY\` | \`Aug 2025\` | Full month name + 4-digit year |
+              | **Team Name** | \`TeamName\` | \`Sales Excellence\` | Alphanumeric only, no spaces |
               
               ### 📅 Valid Month Names:
               January, February, March, April, May, June, July, August, September, October, November, December
               *(Case insensitive)*
               
               ### 🔧 Valid Examples:
-              - \`PROJ-123 - Sprint 45 - March 2024 - DataTeam\`
-              - \`SALES-456 - Sprint 12 - January 2024 - SalesTeam\`
-              - \`DEVOPS-789 - Sprint 67 - DECEMBER 2024 - DevOpsTeam\`
-              
-              ### ❌ Common Mistakes:
-              - Missing dashes: \`PROJ-123 Sprint 45 March 2024 DataTeam\`
-              - **Abbreviated month**: \`PROJ-123 - Sprint 45 - Mar 2024 - DataTeam\` ❌
-              - **Invalid month**: \`PROJ-123 - Sprint 45 - Marche 2024 - DataTeam\` ❌
-              - Spaces in team name: \`PROJ-123 - Sprint 45 - March 2024 - Data Team\`
-              - Wrong case: \`proj-123 - sprint 45 - march 2024 - datateam\`
-              
+              - \`EDPEST-1234 - Sprint 2.3 - Aug 2025 - OrderTeam\`
+              - \`EDPEST-4567 - Sprint 2.4 - Aug 2025 - SalesTeam\`    
+           
               ### 🛠️ How to Fix:
               1. **Edit your PR title** to match the exact format above
               2. The validation will automatically re-run when you save the title
