@@ -101,22 +101,9 @@ jobs:
               JIRA Issue ID - Sprint # - Release Month - Team Name
               \`\`\`
               
-              ### 📋 Component Requirements:
-              
-              | Component | Format | Example | Rules |
-              |-----------|--------|---------|-------|
-              | **JIRA Issue ID** | \`EDPEST-###\` | \`EDPEST-1234\` | Uppercase letters, dash, numbers |
-              | **Sprint Number** | \`Sprint ##\` | \`Sprint 1.1\` | Word "Sprint" + space + Version |
-              | **Release Month** | \`Month YYYY\` | \`Aug 2025\` | Full month name + 4-digit year |
-              | **Team Name** | \`TeamName\` | \`Sales Excellence\` | Alphanumeric only, no spaces |
-              
-              ### 📅 Valid Month Names:
-              January, February, March, April, May, June, July, August, September, October, November, December
-              *(Case insensitive)*
-              
               ### 🔧 Valid Examples:
-              - \`EDPEST-1234 - Sprint 2.3 - Aug 2025 - OrderTeam\`
-              - \`EDPEST-4567 - Sprint 2.4 - Aug 2025 - SalesTeam\`    
+              - \`EDPEST-1234 - Sprint 2.3 - August 2025 - OrderTeam\`
+              - \`EDPEST-4567 - Sprint 2.4 - August 2025 - SalesTeam\`    
            
               ### 🛠️ How to Fix:
               1. **Edit your PR title** to match the exact format above
