@@ -1,0 +1,203 @@
+name: PR Title Validation (Production)
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  validate-and-block:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR Title and Block Invalid PRs
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { context, github } = require('@actions/github');
+            const title = context.payload.pull_request.title;
+            const prNumber = context.payload.pull_request.number;
+            const prAuthor = context.payload.pull_request.user.login;
+            
+            console.log(`🔍 Validating PR #${prNumber} title: "${title}"`);
+            console.log(`👤 Author: ${prAuthor}`);
+            
+            // Validation function with improved month validation
+            function validatePRTitle(title) {
+              // Expected format: JIRA Issue ID - Sprint # - Release Month - Team Name
+              const titlePattern = /^[A-Z]+-\d+ - Sprint \d+ - [A-Za-z]+ \d{4} - [A-Za-z]+$/;
+              
+              if (!titlePattern.test(title)) {
+                return { valid: false, error: `PR title "${title}" does not match required format` };
+              }
+              
+              const parts = title.split(' - ');
+              if (parts.length !== 4) {
+                return { valid: false, error: 'PR title must have exactly 4 parts separated by " - "' };
+              }
+              
+              const [jiraId, sprint, releaseMonth, teamName] = parts;
+              
+              // Validate JIRA ID
+              if (!/^[A-Z]+-\d+$/.test(jiraId)) {
+                return { valid: false, error: `JIRA ID "${jiraId}" must follow format: PROJECT-123` };
+              }
+              
+              // Validate Sprint
+              if (!/^Sprint \d+$/.test(sprint)) {
+                return { valid: false, error: `Sprint "${sprint}" must follow format: Sprint 45` };
+              }
+              
+              // IMPROVED: Validate Release Month with actual month names
+              const validMonths = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December',
+                'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
+              ];
+              
+              const monthParts = releaseMonth.split(' ');
+              if (monthParts.length !== 2) {
+                return { valid: false, error: `Release Month "${releaseMonth}" must follow format: March 2024` };
+              }
+              
+              const [monthName, year] = monthParts;
+              if (!validMonths.includes(monthName)) {
+                return { valid: false, error: `Release Month "${releaseMonth}" must use a valid month name (e.g., January, February, March, etc.)` };
+              }
+              
+              if (!/^\d{4}$/.test(year)) {
+                return { valid: false, error: `Release Month "${releaseMonth}" year must be 4 digits` };
+              }
+              
+              // Validate Team Name
+              if (!/^[A-Za-z]+$/.test(teamName)) {
+                return { valid: false, error: `Team Name "${teamName}" must be alphanumeric with no spaces` };
+              }
+              
+              return { valid: true };
+            }
+            
+            const validation = validatePRTitle(title);
+            
+            if (!validation.valid) {
+              console.log(`❌ Validation failed: ${validation.error}`);
+              
+              // Create detailed comment explaining the issue
+              const comment = `## 🚨 PR BLOCKED: Invalid Title Format
+              
+              **This Pull Request has been automatically blocked because the title doesn't follow the required naming convention.**
+              
+              ### ❌ Current Title:
+              \`\`\`
+              ${title}
+              \`\`\`
+              
+              ### ✅ Required Format:
+              \`\`\`
+              JIRA Issue ID - Sprint # - Release Month - Team Name
+              \`\`\`
+              
+              ### 📋 Component Requirements:
+              
+              | Component | Format | Example | Rules |
+              |-----------|--------|---------|-------|
+              | **JIRA Issue ID** | \`PROJECT-###\` | \`PROJ-123\` | Uppercase letters, dash, numbers |
+              | **Sprint Number** | \`Sprint ##\` | \`Sprint 45\` | Word "Sprint" + space + number |
+              | **Release Month** | \`Month YYYY\` | \`March 2024\` | Full month name + 4-digit year |
+              | **Team Name** | \`TeamName\` | \`DataTeam\` | Alphanumeric only, no spaces |
+              
+              ### 📅 Valid Month Names:
+              January, February, March, April, May, June, July, August, September, October, November, December
+              *(Case insensitive)*
+              
+              ### 🔧 Valid Examples:
+              - \`PROJ-123 - Sprint 45 - March 2024 - DataTeam\`
+              - \`SALES-456 - Sprint 12 - January 2024 - SalesTeam\`
+              - \`DEVOPS-789 - Sprint 67 - DECEMBER 2024 - DevOpsTeam\`
+              
+              ### ❌ Common Mistakes:
+              - Missing dashes: \`PROJ-123 Sprint 45 March 2024 DataTeam\`
+              - **Abbreviated month**: \`PROJ-123 - Sprint 45 - Mar 2024 - DataTeam\` ❌
+              - **Invalid month**: \`PROJ-123 - Sprint 45 - Marche 2024 - DataTeam\` ❌
+              - Spaces in team name: \`PROJ-123 - Sprint 45 - March 2024 - Data Team\`
+              - Wrong case: \`proj-123 - sprint 45 - march 2024 - datateam\`
+              
+              ### 🛠️ How to Fix:
+              1. **Edit your PR title** to match the exact format above
+              2. The validation will automatically re-run when you save the title
+              3. Once the title is valid, the PR will be unblocked
+              
+              ### ❌ Specific Issue:
+              **${validation.error}**
+              
+              ---
+              *This PR will remain in draft mode until the title is corrected. Please update the title and this check will automatically pass.* 🚀
+              
+              @${prAuthor} Please update your PR title to proceed.`;
+              
+              // Add the comment
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+              
+              // Convert PR to draft to prevent merging
+              try {
+                await github.rest.pulls.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                  draft: true
+                });
+                console.log(`🔒 Converted PR #${prNumber} to draft mode`);
+              } catch (error) {
+                console.log(`⚠️ Could not convert to draft: ${error.message}`);
+              }
+              
+              // Fail the check to prevent merging
+              core.setFailed(`PR title validation failed: ${validation.error}`);
+              return false;
+              
+            } else {
+              console.log(`✅ PR title validation passed!`);
+              
+              // If PR was previously in draft due to title issues, convert back to ready
+              if (context.payload.pull_request.draft) {
+                try {
+                  await github.rest.pulls.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                    draft: false
+                  });
+                  console.log(`🔓 Converted PR #${prNumber} back to ready for review`);
+                  
+                  // Add success comment
+                  await github.rest.issues.createComment({
+                    issue_number: prNumber,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    body: `## ✅ PR Title Validation Passed!
+                    
+                    Great job @${prAuthor}! Your PR title now follows the required format:
+                    
+                    \`\`\`
+                    ${title}
+                    \`\`\`
+                    
+                    This PR is now ready for review. 🚀`
+                  });
+                } catch (error) {
+                  console.log(`⚠️ Could not convert from draft: ${error.message}`);
+                }
+              }
+              
+              return true;
+            }
