@@ -1,31 +1,23 @@
-# Feature PR Template
+# Pull Request
+
+## 📋 Summary
+<!-- Brief description of changes -->
+
+## 🎫 JIRA Issue
+**Link:** [ISSUE-NUMBER](https://lumen.atlassian.net/jira/software/c/projects/EDPEST/ISSUE-NUMBER)
+
+## 🚀 Change Type
+- [ ] Bug Fix | [ ] Feature | [ ] Configuration | [ ] Refactor | [ ] Documentation
+
+## 🧪 Apex Checks (if applicable)
+- [ ] **Code Coverage >90%** | [ ] **All Tests Pass** | [ ] **Bulk Data Tested**
+
+**Coverage:** ___% | **Classes:** 
+
+**📋 Pre/Post Steps:** [Link to Confluence Page](https://lumen.atlassian.net/wiki/spaces/EDPEST)
+
+### Quick Checklist
+- [ ] **Pre-deployment steps documented/completed**
+- [ ] **Post-deployment validation planned**
 
 
-## Link to JIRA Issue 
-
-Link to any design documents or diagrams relevant to this feature.
-
-## Impact
-
-Discuss any potential impacts this feature may have on existing functionalities.
-
-## Code Coverage
-
-Provide the code coverage percentage for this change (e.g., 85%)- 
-
-## Screenshots/Video
-
-Include screenshots or video demonstrating the new feature, if applicable.
-
-## Checklist
-
-- [ ] I have added or updated tests to validate my changes 
-- [ ] I have performed a self-review of my own code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] My changes generate no new warnings or errors in the Salesforce org
-- [ ] All new and existing checks pass in GitHub 
-- [ ] Any dependent changes have been merged and published in downstream modules
-- [ ] Unit tests covering the new feature have been added
-- [ ] All existing tests pass
-
-## Note for Reviewers: This pull request requires at least one peer review before merging. Please verify code coverage, test results, and alignment with functional requirements. Use @mentions to assign reviewers.
