@@ -1,0 +1,118 @@
+name: PR Title Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Custom PR Title Format
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { context } = require('@actions/github');
+            const title = context.payload.pull_request.title;
+            
+            // Expected format: JIRA Issue ID - Sprint # - Release Month - Team Name
+            // Example: PROJ-123 - Sprint 45 - March 2024 - DataTeam
+            const titlePattern = /^[A-Z]+-\d+ - Sprint \d+ - [A-Za-z]+ \d{4} - [A-Za-z]+$/;
+            
+            console.log(`Validating PR title: "${title}"`);
+            
+            if (!titlePattern.test(title)) {
+              core.setFailed(`PR title "${title}" does not match required format`);
+              return false;
+            }
+            
+            // Additional validation for components
+            const parts = title.split(' - ');
+            if (parts.length !== 4) {
+              core.setFailed(`PR title must have exactly 4 parts separated by " - "`);
+              return false;
+            }
+            
+            const [jiraId, sprint, releaseMonth, teamName] = parts;
+            
+            // Validate JIRA ID format
+            const jiraPattern = /^[A-Z]+-\d+$/;
+            if (!jiraPattern.test(jiraId)) {
+              core.setFailed(`JIRA ID "${jiraId}" must follow format: PROJECT-123`);
+              return false;
+            }
+            
+            // Validate Sprint format
+            const sprintPattern = /^Sprint \d+$/;
+            if (!sprintPattern.test(sprint)) {
+              core.setFailed(`Sprint "${sprint}" must follow format: Sprint 45`);
+              return false;
+            }
+            
+            // Validate Release Month format
+            const monthPattern = /^[A-Za-z]+ \d{4}$/;
+            if (!monthPattern.test(releaseMonth)) {
+              core.setFailed(`Release Month "${releaseMonth}" must follow format: March 2024`);
+              return false;
+            }
+            
+            // Validate Team Name (no spaces, alphanumeric only)
+            const teamPattern = /^[A-Za-z]+$/;
+            if (!teamPattern.test(teamName)) {
+              core.setFailed(`Team Name "${teamName}" must be alphanumeric with no spaces`);
+              return false;
+            }
+            
+            console.log('✅ PR title validation passed!');
+            return true;
+
+      - name: Comment PR Title Format
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { context, github } = require('@actions/github');
+            
+            const comment = `## 🚨 PR Title Format Required
+            
+            Your PR title doesn't follow the required naming convention. Please update it to match this **exact** format:
+            
+            \`\`\`
+            JIRA Issue ID - Sprint # - Release Month - Team Name
+            \`\`\`
+            
+            ### ✅ Valid Example:
+            \`\`\`
+            PROJ-123 - Sprint 45 - March 2024 - DataTeam
+            \`\`\`
+            
+            ### 📋 Component Requirements:
+            
+            | Component | Format | Example | Rules |
+            |-----------|--------|---------|-------|
+            | **JIRA Issue ID** | \`PROJECT-###\` | \`PROJ-123\` | Uppercase letters, dash, numbers |
+            | **Sprint Number** | \`Sprint ##\` | \`Sprint 45\` | Word "Sprint" + space + number |
+            | **Release Month** | \`Month YYYY\` | \`March 2024\` | Full month name + 4-digit year |
+            | **Team Name** | \`TeamName\` | \`DataTeam\` | Alphanumeric only, no spaces |
+            
+            ### ❌ Common Mistakes:
+            - Missing dashes: \`PROJ-123 Sprint 45 March 2024 DataTeam\`
+            - Wrong spacing: \`PROJ-123- Sprint 45 -March 2024- DataTeam\`
+            - Abbreviated month: \`PROJ-123 - Sprint 45 - Mar 2024 - DataTeam\`
+            - Spaces in team name: \`PROJ-123 - Sprint 45 - March 2024 - Data Team\`
+            - Wrong case: \`proj-123 - sprint 45 - march 2024 - datateam\`
+            
+            ### 🔧 More Examples:
+            - \`SALES-456 - Sprint 12 - January 2024 - SalesTeam\`
+            - \`DEVOPS-789 - Sprint 67 - December 2024 - DevOpsTeam\`
+            - \`UI-001 - Sprint 33 - June 2024 - FrontendTeam\`
+            
+            ---
+            This check will automatically pass once you update your PR title to match the exact format above. 🚀`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
