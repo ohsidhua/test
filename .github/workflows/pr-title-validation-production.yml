@@ -19,11 +19,56 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const title = context.payload.pull_request.title;
+            let body = context.payload.pull_request.body || '';
             const prNumber = context.payload.pull_request.number;
             const prAuthor = context.payload.pull_request.user.login;
             
+            // Fetch PR body if not in payload (e.g., for synchronize events)
+            if (!body) {
+              try {
+                const pr = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber
+                });
+                body = pr.data.body || '';
+              } catch (error) {
+                console.log(`⚠️ Could not fetch PR body: ${error.message}`);
+              }
+            }
+            
             console.log(`🔍 Validating PR #${prNumber} title: "${title}"`);
             console.log(`👤 Author: ${prAuthor}`);
+            
+            // Validation function for checkboxes
+            function validateCheckboxes(body) {
+              const errors = [];
+              
+              // Check Pre-deployment steps checkbox
+              // Pattern matches: "Pre-deployment steps applicable?" followed by "Yes [x] Not Applicable[ ]" or similar
+              const preDeploymentMatch = body.match(/Pre-deployment steps applicable\?[\s\S]*?Yes\s*\[([xX ])\]\s*Not Applicable\s*\[([xX ])\]/);
+              if (!preDeploymentMatch || (!preDeploymentMatch[1].match(/[xX]/) && !preDeploymentMatch[2].match(/[xX]/))) {
+                errors.push('Pre-deployment steps applicable checkbox must have either "Yes" or "Not Applicable" selected');
+              }
+              
+              // Check Post-deployment steps checkbox
+              const postDeploymentMatch = body.match(/Post-deployment steps applicable\?[\s\S]*?Yes\s*\[([xX ])\]\s*Not Applicable\s*\[([xX ])\]/);
+              if (!postDeploymentMatch || (!postDeploymentMatch[1].match(/[xX]/) && !postDeploymentMatch[2].match(/[xX]/))) {
+                errors.push('Post-deployment steps applicable checkbox must have either "Yes" or "Not Applicable" selected');
+              }
+              
+              // Check Code check-in in inventory checkbox
+              const codeCheckInMatch = body.match(/Code check-in in inventory\?[\s\S]*?Yes\s*\[([xX ])\]\s*Not Applicable\s*\[([xX ])\]/);
+              if (!codeCheckInMatch || (!codeCheckInMatch[1].match(/[xX]/) && !codeCheckInMatch[2].match(/[xX]/))) {
+                errors.push('Code check-in in inventory checkbox must have either "Yes" or "Not Applicable" selected');
+              }
+              
+              if (errors.length > 0) {
+                return { valid: false, errors };
+              }
+              
+              return { valid: true };
+            }
             
             // Validation function with improved month validation
             function validatePRTitle(title) {
@@ -81,42 +126,65 @@ jobs:
               return { valid: true };
             }
             
-            const validation = validatePRTitle(title);
+            const titleValidation = validatePRTitle(title);
+            const checkboxValidation = validateCheckboxes(body);
             
-            if (!validation.valid) {
-              console.log(`❌ Validation failed: ${validation.error}`);
+            const allErrors = [];
+            if (!titleValidation.valid) {
+              allErrors.push({ type: 'title', error: titleValidation.error });
+            }
+            if (!checkboxValidation.valid) {
+              checkboxValidation.errors.forEach(err => {
+                allErrors.push({ type: 'checkbox', error: err });
+              });
+            }
+            
+            if (allErrors.length > 0) {
+              console.log(`❌ Validation failed`);
+              allErrors.forEach(err => console.log(`  - ${err.type}: ${err.error}`));
               
-              // Create detailed comment explaining the issue
-              const comment = `## 🚨 PR BLOCKED: Invalid Title Format
+              const titleErrors = allErrors.filter(e => e.type === 'title');
+              const checkboxErrors = allErrors.filter(e => e.type === 'checkbox');
               
-              **This Pull Request has been automatically blocked because the title doesn't follow the required naming convention.**
+              // Create detailed comment explaining the issues
+              let comment = `## 🚨 PR BLOCKED: Validation Failed\n\n`;
               
-              ### ❌ Current Title:
-              \`\`\`
-              ${title}
-              \`\`\`
+              if (titleErrors.length > 0) {
+                comment += `**This Pull Request has been automatically blocked because the title doesn't follow the required naming convention.**\n\n`;
+                comment += `### ❌ Current Title:\n\`\`\`\n${title}\n\`\`\`\n\n`;
+                comment += `### ✅ Required Format:\n\`\`\`\nJIRA Issue ID - Sprint # - Release Month - Team Name\n\`\`\`\n\n`;
+                comment += `### 🔧 Valid Examples:\n`;
+                comment += `- \`EDPEST-1234 - Sprint 2.3 - August 2025 - OrderTeam\`\n`;
+                comment += `- \`EDPEST-4567 - Sprint 2.4 - August 2025 - SalesTeam\`\n\n`;
+                comment += `### ❌ Title Issues:\n`;
+                titleErrors.forEach(err => {
+                  comment += `- **${err.error}**\n`;
+                });
+                comment += `\n`;
+              }
               
-              ### ✅ Required Format:
-              \`\`\`
-              JIRA Issue ID - Sprint # - Release Month - Team Name
-              \`\`\`
+              if (checkboxErrors.length > 0) {
+                comment += `### ❌ Missing Checkbox Selections:\n`;
+                comment += `**The following checkboxes in the PR template must be completed:**\n\n`;
+                checkboxErrors.forEach(err => {
+                  comment += `- ${err.error}\n`;
+                });
+                comment += `\n`;
+                comment += `Please ensure all checkboxes in the "Quick Checklist" section have either "Yes" or "Not Applicable" selected.\n\n`;
+              }
               
-              ### 🔧 Valid Examples:
-              - \`EDPEST-1234 - Sprint 2.3 - August 2025 - OrderTeam\`
-              - \`EDPEST-4567 - Sprint 2.4 - August 2025 - SalesTeam\`    
-           
-              ### 🛠️ How to Fix:
-              1. **Edit your PR title** to match the exact format above
-              2. The validation will automatically re-run when you save the title
-              3. Once the title is valid, the PR will be unblocked
-              
-              ### ❌ Specific Issue:
-              **${validation.error}**
-              
-              ---
-              *This PR will remain in draft mode until the title is corrected. Please update the title and this check will automatically pass.* 🚀
-              
-              @${prAuthor} Please update your PR title to proceed.`;
+              comment += `### 🛠️ How to Fix:\n`;
+              if (titleErrors.length > 0) {
+                comment += `1. **Edit your PR title** to match the required format\n`;
+              }
+              if (checkboxErrors.length > 0) {
+                comment += `${titleErrors.length > 0 ? '2' : '1'}. **Complete all checkboxes** in the PR template\n`;
+              }
+              comment += `${titleErrors.length > 0 || checkboxErrors.length > 0 ? (titleErrors.length > 0 && checkboxErrors.length > 0 ? '3' : '2') : '1'}. The validation will automatically re-run when you save the changes\n`;
+              comment += `${titleErrors.length > 0 || checkboxErrors.length > 0 ? (titleErrors.length > 0 && checkboxErrors.length > 0 ? '4' : '3') : '2'}. Once all validations pass, the PR will be unblocked\n\n`;
+              comment += `---\n`;
+              comment += `*This PR will remain in draft mode until all validations pass. Please update the PR and this check will automatically re-run.* 🚀\n\n`;
+              comment += `@${prAuthor} Please update your PR to proceed.`;
               
               // Add the comment
               await github.rest.issues.createComment({
@@ -140,13 +208,15 @@ jobs:
               }
               
               // Fail the check to prevent merging
-              core.setFailed(`PR title validation failed: ${validation.error}`);
+              const errorMessages = allErrors.map(e => e.error).join('; ');
+              core.setFailed(`PR validation failed: ${errorMessages}`);
               return false;
               
             } else {
               console.log(`✅ PR title validation passed!`);
+              console.log(`✅ PR checkbox validation passed!`);
               
-              // If PR was previously in draft due to title issues, convert back to ready
+              // If PR was previously in draft due to validation issues, convert back to ready
               if (context.payload.pull_request.draft) {
                 try {
                   await github.rest.pulls.update({
@@ -162,13 +232,16 @@ jobs:
                     issue_number: prNumber,
                     owner: context.repo.owner,
                     repo: context.repo.repo,
-                    body: `## ✅ PR Title Validation Passed!
+                    body: `## ✅ PR Validation Passed!
                     
-                    Great job @${prAuthor}! Your PR title now follows the required format:
+                    Great job @${prAuthor}! Your PR has passed all validations:
                     
+                    ✅ **Title Format:** Valid
                     \`\`\`
                     ${title}
                     \`\`\`
+                    
+                    ✅ **Checkboxes:** All completed
                     
                     This PR is now ready for review. 🚀`
                   });
