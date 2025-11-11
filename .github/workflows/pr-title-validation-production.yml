@@ -45,20 +45,20 @@ jobs:
               const errors = [];
               
               // Check Pre-deployment steps checkbox
-              // Pattern matches: "Pre-deployment steps applicable?" followed by "Yes [x] Not Applicable[ ]" or similar
-              const preDeploymentMatch = body.match(/Pre-deployment steps applicable\?[\s\S]*?Yes\s*\[([xX ])\]\s*Not Applicable\s*\[([xX ])\]/);
+              // Pattern matches: "Pre-deployment steps applicable?" followed by markdown checkboxes "- [x] Yes" and "- [x] Not Applicable"
+              const preDeploymentMatch = body.match(/Pre-deployment steps applicable\?[\s\S]*?-\s*\[([xX ])\]\s*Yes[\s\S]*?-\s*\[([xX ])\]\s*Not Applicable/);
               if (!preDeploymentMatch || (!preDeploymentMatch[1].match(/[xX]/) && !preDeploymentMatch[2].match(/[xX]/))) {
                 errors.push('Pre-deployment steps applicable checkbox must have either "Yes" or "Not Applicable" selected');
               }
               
               // Check Post-deployment steps checkbox
-              const postDeploymentMatch = body.match(/Post-deployment steps applicable\?[\s\S]*?Yes\s*\[([xX ])\]\s*Not Applicable\s*\[([xX ])\]/);
+              const postDeploymentMatch = body.match(/Post-deployment steps applicable\?[\s\S]*?-\s*\[([xX ])\]\s*Yes[\s\S]*?-\s*\[([xX ])\]\s*Not Applicable/);
               if (!postDeploymentMatch || (!postDeploymentMatch[1].match(/[xX]/) && !postDeploymentMatch[2].match(/[xX]/))) {
                 errors.push('Post-deployment steps applicable checkbox must have either "Yes" or "Not Applicable" selected');
               }
               
               // Check Code check-in in inventory checkbox
-              const codeCheckInMatch = body.match(/Code check-in in inventory\?[\s\S]*?Yes\s*\[([xX ])\]\s*Not Applicable\s*\[([xX ])\]/);
+              const codeCheckInMatch = body.match(/Code check-in in inventory\?[\s\S]*?-\s*\[([xX ])\]\s*Yes[\s\S]*?-\s*\[([xX ])\]\s*Not Applicable/);
               if (!codeCheckInMatch || (!codeCheckInMatch[1].match(/[xX]/) && !codeCheckInMatch[2].match(/[xX]/))) {
                 errors.push('Code check-in in inventory checkbox must have either "Yes" or "Not Applicable" selected');
               }

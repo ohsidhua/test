@@ -12,14 +12,17 @@
 ### Quick Checklist
 **Pre-deployment steps applicable?**
 
-Yes [ ] Not Applicable[ ]
+- [ ] Yes
+- [ ] Not Applicable
 
 **Post-deployment steps applicable?**
 
-Yes [ ] Not Applicable[ ]
+- [ ] Yes
+- [ ] Not Applicable
 
 **Code check-in in inventory?**
 
-Yes [ ] Not Applicable[ ]
+- [ ] Yes
+- [ ] Not Applicable
 
 
